@@ -42,7 +42,8 @@ typedef enum
 	SINE,
 	TRIANGLE,
 	EXPLOG,
-	DIST
+	DIST,
+	PHASOR
 }
 wave;
 
@@ -52,6 +53,7 @@ typedef struct
 	char *len;
 	char *tc;
 	double pitch; // 1 for unison (8')
+	unsigned int phapi; // pitch in semitones from 1 (for PHASOR)
 	double scale; // 0 will be pure, <1 for flute, ~1 for diapason, >1 for string
 	wave form;
 	bool stopped;
@@ -69,7 +71,7 @@ int line(SDL_Surface *surf, int x0, int y0, int x1, int y1, unsigned char r, uns
 void mixaudio(void *unused, Uint8 *stream, int len);
 void freqcalc(int transp);
 void addstop(stop new);
-double szn(int p, double f);
+double szn(int p, double f, int phaf, double vol);
 int dtext(SDL_Surface * scrn, int x, int y, char * text, TTF_Font * font, unsigned char r, unsigned char g, unsigned char b);
 void write_midi_time(int dt);
 
@@ -87,6 +89,22 @@ bool on[80], extra[80];
 double vol[80];
 double freq[80];
 double temper[12]={1, 1.05112915, 1.125, 1.20078236, 1.25, 1.33497398, 1.40150557, 1.50097794, 1.6019688, 1.68180672, 1.77996531, 1.8765396};
+/* base phasor oscillators */
+#define N_PHASORS	12 // just the in-tune notes for now
+#define PH_ORDER	64
+struct {
+	// z is the running e^iwt accumulator
+	float z_re[N_PHASORS];
+	float z_im[N_PHASORS];
+	// w is the step multiplier, (1+eps)e^(iwdt)
+	float w_re[N_PHASORS];
+	float w_im[N_PHASORS];
+	// a[n] is the coefficient of z^n in the current control-block's output
+	float a_re[N_PHASORS][64];
+	float a_im[N_PHASORS][64];
+	// are we updating a[n] this step?
+	bool calc_a;
+} phasors;
 int omode[20];
 double env;
 double u;
@@ -250,9 +268,12 @@ int main(int argc, char *argv[])
 										new.name=strdup(name);
 										new.len=strndup(name, strcspn(name, " "));
 										if(strchr(name, ' ')) new.tc=strndup(strchr(name, ' ')+1, 3); else new.tc=strdup("");
-										sscanf(pitch, "%lg", &new.pitch);
-										sscanf(scale, "%lg", &new.scale);
 										sscanf(wf, "%d", (int *)&new.form);
+										if (new.form == PHASOR)
+											sscanf(pitch, "%u", &new.phapi);
+										else
+											sscanf(pitch, "%lg", &new.pitch);
+										sscanf(scale, "%lg", &new.scale);
 										sscanf(st, "%d", (int *)&new.stopped);
 										sscanf(mm, "%hhu", &new.db);
 										new.vol=exp(0.1-new.pitch*0.15)*(nstops<3?(0.5-nstops*0.15):0.1);
@@ -358,6 +379,10 @@ int main(int argc, char *argv[])
 	fv=0;ff=M_PI*440.0*(double)exp2((transp-16.0)/12.0)/(double)srate;
 	fm=0;
 	freqcalc(transp);
+	for(int j=0;j<N_PHASORS;j++) {
+		phasors.z_re[j] = 1.0f;
+		phasors.z_im[j] = 0.0f;
+	}
 	
 	// More SDL stuff
 	TTF_Font *font=NULL, *minifont=NULL;
@@ -1559,7 +1584,7 @@ int line(SDL_Surface *surf, int x0, int y0, int x1, int y1, unsigned char r, uns
 	return(0);
 }
 
-double szn(int p, double f)
+double szn(int p, double f, int phaf, double vol)
 {
 	if(organ)
 	{
@@ -1568,6 +1593,20 @@ double szn(int p, double f)
 		{
 			if(stopset[s])
 			{
+				if (!s_Ch && phaf>=0 && slist[s].form==PHASOR) {
+					if(!phasors.calc_a)
+						continue;
+					unsigned int pitch = slist[s].phapi + phaf;
+					unsigned int base = pitch % 12;
+					unsigned int shift = pitch / 12;
+					// For now we are oversimplified and have only real coefficients
+					if (1<<shift < PH_ORDER)
+						phasors.a_re[base][(1<<shift)-1] += slist[s].vol * vol;
+					int over = slist[s].stopped?3:2;
+					if (over<<shift < PH_ORDER)
+						phasors.a_re[base][(over<<shift)-1] += slist[s].vol2 * vol;
+					continue;
+				}
 				for(int i=1;i<3;i++)
 				{
 					double ph=fmod(p*f*(slist[s].stopped?(i<<1)-1:i)*slist[s].pitch, M_PI*2);
@@ -1575,6 +1614,7 @@ double szn(int p, double f)
 					switch(slist[s].form)
 					{
 						case SINE:
+						case PHASOR: /* For bottom F, fall back to inefficient sine for now */
 							v=s_Ch?(ph>M_PI?1:0):sin(ph);
 						break;
 						case TRIANGLE:
@@ -1608,10 +1648,10 @@ double szn(int p, double f)
 				}
 			}
 		}
-		return(r);
+		return(r * vol);
 	}
 	else
-		return sin(p*f);
+		return sin(p*f) * vol;
 }
 
 void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
@@ -1624,9 +1664,27 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 	}
 	if(s_Ge)
 		hit*=0.2;
+	memset(phasors.a_re, 0, sizeof(phasors.a_re));
+	memset(phasors.a_im, 0, sizeof(phasors.a_im));
 	for(i=0;i<len;i+=2)
 	{
+		phasors.calc_a = !i;
 		t=(t+1);
+		/* Spin the fundamental oscillators */
+		for(int j=0;j<N_PHASORS;j++) {
+			float re = phasors.z_re[j] * phasors.w_re[j] -
+				   phasors.z_im[j] * phasors.w_im[j];
+			float im = phasors.z_re[j] * phasors.w_im[j] +
+				   phasors.z_im[j] * phasors.w_re[j];
+			/* clip phasors to [-1, 1] bounding box.
+			 * Symmetric for now, later each phasor will have its
+			 * own clip values specified.
+			 */
+			re = re > 1.0f ? 1.0f : (re < -1.0f ? -1.0f : re);
+        		im = im > 1.0f ? 1.0f : (im < -1.0f ? -1.0f : im);
+        		phasors.z_re[j] = re;
+        		phasors.z_im[j] = im;
+		}
 		if(shake||(shakeval>0.005))
 		{
 			if(!(t%25))
@@ -1637,11 +1695,10 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 		}
 		else
 			shakeval=0;
-		int j;
 		double x=0;
 		if(fv>0.005) // code for bottom F
 		{
-			x+=fv*szn(t, ff)*7.5;
+			x+=szn(t, ff, -2, fv)*7.5;
 			if(!fp&&!(t%25))
 			{
 				if(s_Ns)
@@ -1663,13 +1720,14 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 				fv=hit+(fv*(1-hit));
 			}
 		}
-		for(j=0;j<high;j++)
+		for(int j=0;j<high;j++)
 		{
+			int pit = (j/20)*12+(j%20);
 			if(vol[j]>0.005)
 			{
-				x+=vol[j]*szn(t, freq[j])*7.5;
+				x+=szn(t, freq[j], pit, vol[j])*7.5;
 				if(extra[j])
-					x+=vol[j]*szn(t, freq[j]*(s_5h?1.5:2.0))*7.5;
+					x+=szn(t, freq[j]*(s_5h?1.5:2.0), pit + (s_5h?7:12), vol[j])*7.5;
 				/*if(s_Ns)
 					fv=(fv*(1-5000.0/srate));
 				else
@@ -1695,6 +1753,17 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 				{
 					vol[j]=hit+(vol[j]*(1-hit));
 				}
+			}
+		}
+		// accumulate phasor polynomials
+		for(int j=0;j<N_PHASORS;j++) {
+			float re = 1, im = 0;
+			for(int k=0;k<PH_ORDER;k++) {
+				float next_re = re*phasors.z_re[j] - im*phasors.z_im[j];
+				float next_im = re*phasors.z_im[j] + im*phasors.z_re[j];
+				re = next_re;
+				im = next_im;
+				x += (re*phasors.a_re[j][k] - im*phasors.a_im[j][k])*7.5;
 			}
 		}
 		//double v=abs(x);
@@ -1764,6 +1833,12 @@ void freqcalc(int transp)
 	ff=
 		s_Ji?M_PI*256.0*(double)exp2(floor(t/12.0))*temper[ti]/(double)srate
 		:M_PI*256.0*(double)exp2(t/12.0)/(double)srate;
+	for(int j=0;j<N_PHASORS;j++) {
+		// Slightly longer than 1 so that it stays on the clip and we don't have to normalise
+		// Float ulp at 1 is about 1.19e-7
+		phasors.w_re[j] = cos(freq[j] / 8) * (1 + 2e-7);
+		phasors.w_im[j] = sin(freq[j] / 8) * (1 + 2e-7);
+	}
 }
 
 void addstop(stop new)
