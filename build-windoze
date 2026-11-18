@@ -1,0 +1,3 @@
+#!/bin/bash
+i586-mingw32msvc-gcc -c bits.c -o bits.dll -DWINDOWS
+i586-mingw32msvc-gcc azino.c -o azino.exe -DWINDOWS -I/usr/i586-mingw32msvc/include -L/usr/i586-mingw32msvc/lib -I/usr/i586-mingw32msvc/include/SDL `/usr/i586-mingw32msvc/bin/sdl-config --cflags --libs` -lm --std=gnu99 -lSDL_ttf bits.dll

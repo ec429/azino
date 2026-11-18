@@ -1,0 +1,87 @@
+	-------------------------
+	THE AZINO - A GUIDED TOUR
+	-------------------------
+
+What is the Azino?
+------------------
+The Azino (pronounced AT-si-no) is a software synthesiser played using an ordinary QWERTY keyboard - no need for any extra hardware like MIDI keyboards or pedals.  All of its most important functions are controlled by keypresses (a few customisation/configuration settings are handled with the mouse, but only things that are unlikely to be changed in the middle of a performance).
+With a little skill, the Azino can turn your laptop into a 45-stop organ capable of performing a wide range of repertory, from baroque masterpieces right up to modern popular song tunes.
+The name is a reference to the fact that French keyboards, instead of having QWERTY along the top, have AZERTY (which of course means you need a UK keyboard to play the Azino).
+
+How is the Azino played?
+------------------------
+The fundamental part of the input is the 'manual' - i.e. the keys corresponding to a scale of pitches.  The 'white notes' (C major) are on the row ASDFGHJKL;'#, starting at a G and finishing on a D (that is, a total of a twelfth).  Then there are the 'black notes', which appear on the row above as WETYIOP] (the keys Q, R, U and [ are not connected to any note, since there are no black notes at those points on a piano).  This gives a full chromatic range of a major twelfth.  But the Azino can produce a much wider range of pitches, through the use of modifier keys.  If the Tab key is held down, any notes struck will sound an octave lower; if spacebar, an octave higher.  (Tab and spacebar together produce notes two octaves higher, but this is usually too high to be needed).
+Thus the Azino manual gives a range of 4 octaves plus a fifth; a total of 55 distinct pitches.  A caveat is that only fairly close keys can be struck together, since a held modifier affects all notes struck (though not notes which are held on from before the modifier was pressed).  To help produce large arpeggiated chords, there is a 'hold function' - if the Enter (Return) key is held down when a note key is released, the note will continue to sound until cancelled (by pressing End or Down Cursor).
+Of course, this is still not enough to easily play chords and melody simultaneously, so the Azino also has a row of 'pedals' - the row \ZXCVBNM,./ and right shift, which produce diatonic chords from F to C (again, a twelfth).  These chords always sound in the lowest register, regardless of active modifier keys.  The tonality of the chords can be selected with PgUp and PgDn (the Azino window will change colour to indicate Major (green), Minor (blue) or Modal (purple)) or changed for an individual chord with the modifier Ctrl.  A table of the chords associated with each key in each tonality is given in Appendix B.
+There are also ways of producing extra pitches outside of the 55-semitone range; the 'extra note' key (left shift) causes every key to sound both its own note and another note 1 octave higher, and this can produce notes above the top D; there is a slider on the left-hand side of the Azino window which can transpose the entire instrument up to 24 semitones (2 octaves) in either direction; more importantly the stops can switch in pipes sounding up to three octaves above or below unison (ie. from 64' to 1').
+As well as shifting the pitch, the stops also serve a much more vital function, that of controlling the timbre (or tone colour) of the sound.  There are, broadly speaking, six categories of stop, and several different pitches in each.  The categories are Diapasons, Flutes, Bourdons, Reeds, Strings and Undulating Stops; a full listing of the Azino's 45 stops is given in Appendix A.
+Setting up a registration (ie. opening a collection of stops to achieve a desired tone colour) is done with the mouse, by clicking on the buttons in the Azino window (right-clicking causes the stop's full name to be written to stdout).  However, this naturally takes some time, and is not practical in the middle of a performance; for this reason, a preset facility is provided.  There are 8 definable presets, whose defaults are set to provide a widely differentiated range of sounds.  Presets are loaded by pressing the keypad numbers 1 through 8 for the custom presets, and 0 to close all stops.  Whenever a preset is loaded, the previous state of the stops is saved in preset 9, loaded by pressing the keypad 9.  To save to any of the custom presets, press first keypad * then the keypad number to save to.  If you decide not to save after all, pressing keypad / will cancel the *.
+Dynamic changes (crescendi, diminuendi, and swells) can be achieved with the number row along the top of the keyboard; 0 gives the loudest /fortissimo/ while 1 reduces the volume to nothing.  The Azino starts up at volume level 7, a comfortable /mezzo-forte/, although of course the overall volume also depends on the registration.
+There are also several toggle options, set by clicking the small buttons with the rounded tops.  These have two-character labels; you can get a longer description of each one by right-clicking it.
+
+Appendix A: The Stops
+---------------------
+Open Diapasons.  These are the 'principal pipes', with the most characteristic pipe organ sound.
+64', 32', 16', 10⅔', 8', 5⅓', 4', 2⅔', 2', 1⅗', 1⅓', 1'
+c''' c''  c'   g'    C   G    C'  G'   C'' E''  G''  C'''
+
+Stopped Diapasons.  Being closed at one end, these pipes resonate only at the odd-order harmonic partials.
+32', 16', 8'
+
+Flutes.  Wider scaling, giving a fuller sound with less harmonics.
+32' Majorbass, 16' Sousbasse, 10⅔' Bourdon, 8' Bass, 4' Chimney, 2⅔' Nazard, 2', 1⅓' Piccolo, 1' Octavin
+
+Stopped Bourdons.  Lower-pitched flutes with odd-order harmonics.
+16', 8'
+
+Strings.  The narrow scaling gives rise to greater harmonic content.
+16' Cello, 8' Viola, 5⅓' Gamba, 4' Violina
+
+Reeds.  The different production of sound leads to a very different waveform, rich in harmonics but with limited volume and power.
+32' Bombarde, 16' Chalumeau, 8' Hautbois, 4' Clarino
+
+Undulating Stops.  These are detuned slightly to produce beat frequencies, creating sweeter sounds, when combinated with another stop of the same length.
+32' Bassi Tremolo, 16' Unda Maris, 8' Vox Humana, 4' Vox Celeste
+Undulating Chorals.  Four ranks best used together in conjunction with the 16' Sousbasse and 8' Bass Flute for a haunting plainchant choir.
+32' Choral Bass, 16' Choral Baritone, 10⅔' Choral Tenor, 8' Choral Alto
+
+Distortion Stops.  These attempt to emulate the effect of pipes with excessive wind pressure, producing a sound with very high harmonic content.
+16' Overblown, 8' Distortion, 4' Harmonic
+
+Appendix B: Pedal Chords
+------------------------
+For each pedal there are two possible chords, determined by the tonality setting.  Holding down Left Ctrl as a pedal is struck will give the alternative chord to the one dictated by the tonality.
+Pedal Major  Minor  Modal
+\     F A C  F A♭C  F A C
+Z     G B D  G B D  G B♭D
+X     A C E  A♭C E♭ A C E♭
+C     B D F  B D F  B♭D F
+V     C E G  C E♭G  C E♭G
+B     D F A  D F A♭ D F A
+N     E G B  E♭G B♭ E♭G B♭
+M     F A C  F A♭C  F A C
+,     G B D  G B D  G B♭D
+.     A C E  A♭C E♭ A♭C E♭
+/     D F B  D F B  D F B♭
+RShft E G C  E♭G C  E♭G C
+
+Appendix C: Default Presets & Registration Suggestions
+------------------------------------------------------
+The Azino has eight default presets for its stops, which illustrate its range of pipes.  These presets can also be changed during a performance (though the changes will be forgotten when the program is exit).  Note that using more pipes requires more CPU power; in effect the number of pipes multiplies the number of notes being played.  Opening too many stops may therefore result in the audio skipping.
+
+Preset 1: Diapasons.  These are the 'principal pipes', with the most characteristic pipe organ sound.  This preset uses only pipes in octaves (from 64' to 1').
+Preset 2: Flutes.  On a real organ these pipes are much wider, which contributes to the fuller sound with less harmonics.  The lowest flute pipe is the 32' Majorbass.
+Preset 3: Strings.  The narrower string scale pipes have a much higher harmonic content; on the Azino this produces an accordian-like sound.
+Preset 4: Voices.  The Vox Humana and Vox Celeste ranks are detuned to produce a sweet voice-like tone.
+Preset 5: Bourdons.  The bourdon pipes are lower-pitched members of the flute class.  Here they are heard together with the 4' Chimney Flute.
+Preset 6: Reeds.  The main reed pipes on the Azino are the 32' Bombarde, the 16' Chalumeau, the 8' Hautbois, and the 4' Clarino.
+Preset 7: Mixture.  Heavy diapasons, plus bourdons, flutes, and lower strings, producing a very powerful sound.
+Preset 8: Cornet.  Five pipes (three flutes and two principals) in an overtone series from 8', for a distinctive organ sound.
+
+Some other effective registrations are:
+Plainchant (Ge, Su, Or)
+	16' Sousbasse Flute, 8' Bass Flute, 8' Hautbois, 32' Choral Bass, 16' Choral Baritone, 10'8 Choral Tenor, 8' Choral Alto
+Wind Band (Or, possibly Su, perhaps Qe or Si)
+	32' Majorbass Flute, 16' Sousbasse Flute, 8' Bass Flute, 4' Chimney Flute, 2' Flute, 16' Chalumeau, 8' Hautbois, 16' Unda Maris, 8' Vox Humana, 4' Vox Celeste
+Basses (perhaps Ge, Su, Or; maybe also Si and/or 5h)
+	64', 32', 16', 10'8 Diapasons; 32', 16' Flutes, 32' Bombarde, 16' Chalumeau, 16' Cello, 32' Bassi Tremolo, 16' Unda Maris, 32' Choral Bass, 16' Choral Baritone
