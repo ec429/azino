@@ -1653,14 +1653,14 @@ double szn(int p, double f, int phaf, double vol, unsigned int age)
 							goto diap;
 						v = 1.0;
 						if (1<<(shift-1) <= PH_ORDER)
-							phasors.a_re[base][0][(1<<(shift-1))-1] += slist[s].vol * vol * 0.025;
+							phasors.a_re[base][0][(1<<(shift-1))-1] += slist[s].vol * vol * (chiff + 0.025);
 						else if ((1<<(shift-1))/16 <= PH_ORDER)
-							phasors.a_re[base][1][((1<<(shift-1))/16)-1] += slist[s].vol * vol * 0.025;
+							phasors.a_re[base][1][((1<<(shift-1))/16)-1] += slist[s].vol * vol * (chiff + 0.025);
 						for(int j=1;;j++) {
 							if (j<<shift <= PH_ORDER)
-								phasors.a_re[base][0][(j<<shift)-1] += slist[s].vol * vol * v;
+								phasors.a_re[base][0][(j<<shift)-1] += slist[s].vol * vol * v * ach;
 							else if ((j<<shift)/16 <= PH_ORDER)
-								phasors.a_re[base][1][((j<<shift)/16)-1] += slist[s].vol * vol * v;
+								phasors.a_re[base][1][((j<<shift)/16)-1] += slist[s].vol * vol * v * ach;
 							else
 								break;
 							v *= slist[s].scale;
