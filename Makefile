@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Wextra -Werror -pedantic --std=gnu99 -g
+CFLAGS := -Wall -Wextra -Werror -pedantic --std=gnu99 -O3 -mavx2 -mfma -g
 PREFIX := /usr/local
 
 SDL = `sdl-config --cflags --libs` -lSDL_ttf -lSDL_gfx
