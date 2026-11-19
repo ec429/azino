@@ -44,10 +44,11 @@ typedef enum
 	EXPLOG,
 	DIST,
 	PHASOR,
-	VOX,	// PHASOR sharpened by 1.2%
-	PHATRI,	// TRIANGLE implemented with phasors
-	VOXTRI,	// PHATRI sharpened by 1.2%
-	PHAREED,// even-harmonics
+	VOX,		// PHASOR sharpened by 1.2%
+	PHATRI,		// TRIANGLE implemented with phasors
+	VOXTRI,		// PHATRI sharpened by 1.2%
+	PHAREED,	// even-harmonics
+	OVERBLOWN,	// harmonic / overblown pipe
 }
 wave;
 
@@ -282,10 +283,18 @@ int main(int argc, char *argv[])
 										sscanf(st, "%d", (int *)&new.stopped);
 										sscanf(mm, "%hhu", &new.db);
 										new.vol=exp(0.1-new.pitch*0.15)*(nstops<3?(0.5-nstops*0.15):0.1);
-										if(new.form==EXPLOG)
+										switch (new.form) {
+										case OVERBLOWN:
+											new.vol*=2.0;
+											break;
+										case EXPLOG:
 											new.vol*=exp(1.1-new.pitch*0.2);
-										new.vol2=new.vol*new.scale;
-										new.vol/=new.scale;
+											// fallthrough
+										default:
+											new.vol2=new.vol*new.scale;
+											new.vol/=new.scale;
+											break;
+										}
 										if(gn) new.group=strdup(gn);
 										else new.group=NULL;
 										addstop(new);
@@ -1604,12 +1613,14 @@ double szn(int p, double f, int phaf, double vol)
 					unsigned int pitch = slist[s].phapi + phaf;
 					unsigned int base = pitch % 12;
 					unsigned int shift = pitch / 12;
+					double v;
 					switch (slist[s].form) {
 					case VOX:
 						// use the detuned ranks
 						base+=12;
 						// fallthrough
 					case PHASOR:
+					diap:
 						// For now we are oversimplified and have only real coefficients
 						if (1<<shift <= PH_ORDER)
 							phasors.a_re[base][0][(1<<shift)-1] += slist[s].vol * vol;
@@ -1628,7 +1639,7 @@ double szn(int p, double f, int phaf, double vol)
 					case PHATRI:
 						for(int j=0;;j++) {
 							int over = j*2 + 1;
-							double v = ((j&1)?-1.0:1.0)/(over*over);
+							v = ((j&1)?-1.0:1.0)/(over*over);
 							if (2*over<<shift <= PH_ORDER)
 								phasors.a_re[base][0][(2*over<<shift)-1] += slist[s].vol2 * vol * v;
 							else if ((over<<shift)/8 <= PH_ORDER)
@@ -1644,7 +1655,7 @@ double szn(int p, double f, int phaf, double vol)
 					case PHAREED:
 						for(int j=0;;j++) {
 							int over = j?j*2:1;
-							double v = 1.0/((j+1)*(j+1));
+							v = 1.0/((j+1)*(j+1));
 							if (2*over<<shift <= PH_ORDER)
 								phasors.a_re[base][0][(2*over<<shift)-1] += slist[s].vol2 * vol * v;
 							else if ((over<<shift)/8 <= PH_ORDER)
@@ -1655,6 +1666,24 @@ double szn(int p, double f, int phaf, double vol)
 								phasors.a_re[base][1][((over<<shift)/16)-1] += slist[s].vol * vol * v;
 							else
 								break;
+						}
+						break;
+					case OVERBLOWN:
+						if (pitch < 48) // lower ranks use single-length flutes
+							goto diap;
+						v = 1.0;
+						if (1<<(shift-1) <= PH_ORDER)
+							phasors.a_re[base][0][(1<<(shift-1))-1] += slist[s].vol * vol * 0.025;
+						else if ((1<<(shift-1))/16 <= PH_ORDER)
+							phasors.a_re[base][1][((1<<(shift-1))/16)-1] += slist[s].vol * vol * 0.025;
+						for(int j=1;;j++) {
+							if (j<<shift <= PH_ORDER)
+								phasors.a_re[base][0][(j<<shift)-1] += slist[s].vol * vol * v;
+							else if ((j<<shift)/16 <= PH_ORDER)
+								phasors.a_re[base][1][((j<<shift)/16)-1] += slist[s].vol * vol * v;
+							else
+								break;
+							v *= slist[s].scale;
 						}
 						break;
 					default:
@@ -1701,6 +1730,7 @@ double szn(int p, double f, int phaf, double vol)
 								v=ph>M_PI?0.5-log2(ph/M_PI):exp(ph-M_PI)/(1-exp(-M_PI))-exp(-M_PI)-0.5;
 						break;
 						case DIST:
+						case OVERBLOWN:
 							v=s_Ch?(ph>1?1:0):3.0*sin(sin(ph)*3.2);
 						break;
 					}
