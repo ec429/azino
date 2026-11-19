@@ -13,6 +13,7 @@
 #include <SDL.h>
 #include <math.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <SDL_audio.h>
 #include <SDL_ttf.h>
 #include "bits.h"
@@ -77,10 +78,13 @@ int midchn=0;
 unsigned int delts=192;
 bool audio=true;
 bool pressed[80]; // G to D'' in 4 different octave bases
-bool fp,fr,fo;double fv,ff;int fm;
+bool fp,fr,fe;double fv,ff;float flv;int fm,fs,fl;
 bool released[80]; // used for holding (return)
 bool ospc[20], otab[20];
-bool on[80], extra[80];
+bool extra[80];
+bool seen[80]; // audio thread saw 'pressed' last tick
+int strike[80], lift[80];
+float liftvol[80];
 double vol[80];
 double freq[80];
 double temper[12]={1, 1.05112915, 1.125, 1.20078236, 1.25, 1.33497398, 1.40150557, 1.50097794, 1.6019688, 1.68180672, 1.77996531, 1.8765396};
@@ -377,11 +381,13 @@ int main(int argc, char *argv[])
 	int j;
 	for(j=0;j<80;j++)
 	{
-		pressed[j]=on[j]=released[j]=otab[j%20]=ospc[j%20]=false;
+		pressed[j]=released[j]=otab[j%20]=ospc[j%20]=false;
+		strike[j]=lift[j]=0;
+		liftvol[j]=0;
 		vol[j]=0;
 	}
-	fp=fo=fr=false;
-	fv=0;fm=0;
+	fp=fr=false;fe=false;
+	fv=0;fm=0;fs=0;fl=0;flv=0;
 	freqcalc(transp);
 	for(int j=0;j<N_PHASORS;j++) {
 		phasors.z_re[j] = 1.0f;
@@ -571,9 +577,8 @@ int main(int argc, char *argv[])
 		clicks=false;
 		for(int i=0;i<80;i++)
 		{
-			if(released[i]&&(vol[i]<0.005)) {released[i]=false; vol[i]=0;};
 			SDL_Rect note={.x=3+((i%20)<<1), .y=(i/20)<<1, .w=2, .h=2};
-			SDL_FillRect(screen, &note, SDL_MapRGB(screen->format, released[i]?255:0, pressed[i]?255:0, 127));
+			SDL_FillRect(screen, &note, SDL_MapRGB(screen->format, released[i]&(vol[i]>1e-3)?255:0, pressed[i]?255:0, 127));
 		}
 		{
 			SDL_Rect row={.x=43, .y=0, .w=3, .h=8};
@@ -671,9 +676,11 @@ int main(int argc, char *argv[])
 								int j;
 								for(j=0;j<high;j++)
 								{
-									vol[j]=on[j]=pressed[j]=released[j]=false;
+									pressed[j]=released[j]=false;
+									vol[j] = liftvol[j] = 0;
 								}
-								fv=fo=fp=fr=false;
+								fp=fr=false;
+								fv = flv = 0;
 							}
 							else
 							{
@@ -886,7 +893,6 @@ int main(int argc, char *argv[])
 								released[note]=false;
 								ospc[n]=spc;
 								otab[n]=tab;
-								on[note]=true;
 								extra[note]=((key.mod&KMOD_LSHIFT)!=s_Si);
 								if(midi)
 								{
@@ -948,9 +954,7 @@ int main(int argc, char *argv[])
 									for(j=0;j<20;j++)
 									{
 										if(pressed[j]&&released[j])
-										{
 											pressed[j]=released[j]=false;
-										}
 									}
 									if(midi)
 									{
@@ -981,15 +985,15 @@ int main(int argc, char *argv[])
 											putchar(floor(afs*127));
 										}
 									}
-									fp=fo=true;fr=false;
+									fp=true;fr=false;
 									if(!(key.mod&KMOD_LALT))
 									{
 										int a=2,b=5;
 										if(((mode==1)&&!mswap)||((mode==2)&&mswap))
 											a--;
-										pressed[a]=on[a]=true;
+										pressed[a]=true;
 										released[a]=extra[a]=false;
-										pressed[b]=on[b]=true;
+										pressed[b]=true;
 										released[b]=extra[b]=false;
 										if(midi)
 										{
@@ -1051,9 +1055,7 @@ int main(int argc, char *argv[])
 									for(j=0;j<19;j++)
 									{
 										if(pressed[j]&&released[j])
-										{
 											pressed[j]=released[j]=false;
-										}
 									}
 									if(fp&&fr)
 										fp=fr=false;
@@ -1073,7 +1075,8 @@ int main(int argc, char *argv[])
 											putchar(0);
 										}
 									}
-									pressed[n]=on[n]=true;released[n]=extra[n]=false;
+									pressed[n]=true;
+									released[n]=extra[n]=false;
 									if(midi)
 									{
 										int mn=n+43+transp;
@@ -1143,7 +1146,7 @@ int main(int argc, char *argv[])
 										}
 										if(a>=0)
 										{
-											pressed[a]=on[a]=true;
+											pressed[a]=true;
 											released[a]=extra[a]=false;
 											if(midi)
 											{
@@ -1164,7 +1167,7 @@ int main(int argc, char *argv[])
 										}
 										if(b>=0)
 										{
-											pressed[b]=on[b]=true;
+											pressed[b]=true;
 											released[b]=extra[b]=false;
 											if(midi)
 											{
@@ -1185,7 +1188,7 @@ int main(int argc, char *argv[])
 										}
 										if(c>=0)
 										{
-											pressed[c]=on[c]=true;
+											pressed[c]=true;
 											released[c]=extra[c]=false;
 											if(midi)
 											{
@@ -1757,15 +1760,32 @@ double szn(int p, double f, int phaf, double vol)
 void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 {
 	int i;
-	double hit=(organ?50.0:400.0)/srate;
+	float hit=(organ?5e-2:1e-2)*srate;
 	if(s_Qe)
 	{
-		hit=750.0/srate;
+		hit=4e-3*srate;
 	}
 	if(s_Ge)
-		hit*=0.2;
+		hit*=5;
+	float sus = s_Ns ? 1 : (s_Su ? 0.35 : 0.1) * srate;
 	memset(phasors.a_re, 0, sizeof(phasors.a_re));
 	memset(phasors.a_im, 0, sizeof(phasors.a_im));
+	for(int j=0;j<high;j++) {
+		if (pressed[j] && !seen[j]) {
+			strike[j] = t;
+		} else if (seen[j] && !pressed[j]) {
+			lift[j] = t;
+			liftvol[j] = vol[j];
+		}
+		seen[j] = pressed[j];
+	}
+	if (fp && !fe) {
+		fs = t;
+	} else if (fe && !fp) {
+		fl = t;
+		flv = fv;
+	}
+	fe = fp;
 	for(i=0;i<len;i+=2)
 	{
 		phasors.calc_a = !i;
@@ -1796,62 +1816,34 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 		else
 			shakeval=0;
 		double x=0;
-		if(fv>0.005) // code for bottom F
-		{
-			x+=szn(t, ff, -2, fv)*7.5;
-			if(!fp&&!(t%25))
-			{
-				if(s_Ns)
-					fv=(fv*(1-1440.0/srate));
-				else
-					fv=(fv*(1-(s_Su?30.0:120.0)/srate));
+		if (phasors.calc_a) {
+			// code for bottom F
+			unsigned int age = t - fl;
+			fv = flv * exp(-(float)age/sus);
+			if (fe) {
+				unsigned int age = t - fs;
+				if (s_Or)
+					fv = 0;
+				fv += 1.0f - expf(-(float)age/hit);
 			}
-		}
-		if(fp&&!(t%5))
-		{
-			if(fo&&!s_Or)
+			if(fv>1e-4)
+				x+=szn(t, ff, -2, fv)*7.5;
+			for(int j=0;j<high;j++)
 			{
-				fv=(fv*(1-100.0/srate));
-				if(fv<0.2)
-					fo=false;
-			}
-			else
-			{
-				fv=hit+(fv*(1-hit));
-			}
-		}
-		for(int j=0;j<high;j++)
-		{
-			int pit = (j/20)*12+(j%20);
-			if(vol[j]>0.005)
-			{
-				x+=szn(t, freq[j], pit, vol[j])*7.5;
-				if(extra[j])
-					x+=szn(t, freq[j]*(s_5h?1.5:2.0), pit + (s_5h?7:12), vol[j])*7.5;
-				/*if(s_Ns)
-					fv=(fv*(1-5000.0/srate));
-				else
-					fv=(fv*(1-(s_Su?30.0:120.0)/srate));*/
-				if(!pressed[j]&&!(t%25))
-				{
-					if(s_Ns)
-						vol[j]=(vol[j]*(1-1440.0/srate));
-					else
-						vol[j]=(vol[j]*(1-(s_Su?30.0:120.0)/srate));
+				int pit = (j/20)*12+(j%20);
+				unsigned int age = t - lift[j];
+				vol[j] = liftvol[j] * exp(-(float)age/sus);
+				if (seen[j]) {
+					unsigned int age = t - strike[j];
+					if (s_Or)
+						vol[j] = 0;
+					vol[j] += 1.0f - expf(-(float)age/hit);
 				}
-
-			}
-			if(pressed[j]&&!(t%5))
-			{
-				if(on[j]&&!s_Or)
+				if(vol[j]>1e-4)
 				{
-					vol[j]=(vol[j]*(1-hit));
-					if(vol[j]<0.2)
-						on[j]=false;
-				}
-				else
-				{
-					vol[j]=hit+(vol[j]*(1-hit));
+					x+=szn(t, freq[j], pit, vol[j])*7.5;
+					if(extra[j])
+						x+=szn(t, freq[j]*(s_5h?1.5:2.0), pit + (s_5h?7:12), vol[j])*7.5;
 				}
 			}
 		}
