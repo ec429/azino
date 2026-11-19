@@ -390,8 +390,7 @@ int main(int argc, char *argv[])
 		vol[j]=0;
 	}
 	fp=fo=fr=false;
-	fv=0;ff=M_PI*440.0*(double)exp2((transp-16.0)/12.0)/(double)srate;
-	fm=0;
+	fv=0;fm=0;
 	freqcalc(transp);
 	for(int j=0;j<N_PHASORS;j++) {
 		phasors.z_re[j] = 1.0f;
