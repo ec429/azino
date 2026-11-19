@@ -4,8 +4,9 @@
 # (phasor forms instead use semitones above 64')
 # scale: <1 for flute, ~1 for diapason, >1 for string
 # (for waveform over it's instead a geometric ratio, so 0.2-0.5 or so)
+# (for waveform chimney it's the scaling of even harmonics)
 # waveform: 0=sine 1=triangle 2=explog 3=distortion
-# w/phasors: 4=sine 5=vox 6=triangle 7=voxtri 8=reed 9=over
+# w/phasors: 4=sine 5=vox 6=triangle 7=voxtri 8=reed 9=over 10=chimney
 # stopped: boolean (effect is to have harmonics 1+3 instead of 1+2)
 # mems: byte (8 bools), in which memories is this stop open by default?
 # trailing ":groupname" marks the end of a group
@@ -33,8 +34,8 @@
 10'8 Bourdon:31:0.3:6:0:16
 8' Bourdon:36:0.3:6:1:80
 8' Bass Flute:36:0.2:4:0:202
-4' Chimney Flute:48:0.3:4:0:210
-2'8 Nazard:55:0.1:6:0:64
+4' Chimney Flute:48:0.3:10:1:210
+2'8 Nazard:55:0.4:10:0:64
 2' Flute:60:0.4:4:0:194
 1'4 Piccolo:67:0.2:4:0:2
 1' Octavin:72:0.3:4:0:66:Flutes

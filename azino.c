@@ -49,6 +49,7 @@ typedef enum
 	VOXTRI,		// PHATRI sharpened by 1.2%
 	PHAREED,	// even-harmonics
 	OVERBLOWN,	// harmonic / overblown pipe
+	CHIMNEY,	// half-stopped
 }
 wave;
 
@@ -285,6 +286,7 @@ int main(int argc, char *argv[])
 										new.vol=exp(0.1-new.pitch*0.15)*(nstops<3?(0.5-nstops*0.15):0.1);
 										switch (new.form) {
 										case OVERBLOWN:
+										case CHIMNEY:
 											new.vol*=2.0;
 											break;
 										case EXPLOG:
@@ -1688,6 +1690,21 @@ double szn(int p, double f, int phaf, double vol)
 							v *= slist[s].scale;
 						}
 						break;
+					case CHIMNEY:
+						if (pitch < 48) // chimneys are usually omitted in the lower pitches
+							goto diap;
+						for(int j=1;;j++) {
+							v = 1.0/(j*j*j);
+							if (!(j&1))
+								v*=slist[s].scale;
+							if (j<<shift <= PH_ORDER)
+								phasors.a_re[base][0][(j<<shift)-1] += slist[s].vol * vol * v;
+							else if ((j<<shift)/16 <= PH_ORDER)
+								phasors.a_re[base][1][((j<<shift)/16)-1] += slist[s].vol * vol * v;
+							else
+								break;
+						}
+						break;
 					default:
 						fprintf(stderr, "Bad slist[%d].form %d\n", s, slist[s].form);
 						return 0.0;
@@ -1704,6 +1721,7 @@ double szn(int p, double f, int phaf, double vol)
 						case SINE:
 						case PHASOR:
 						case VOX:
+						case CHIMNEY:
 							v=s_Ch?(ph>M_PI?1:0):sin(ph);
 						break;
 						case TRIANGLE:
