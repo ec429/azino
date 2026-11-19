@@ -75,7 +75,7 @@ double szn(int p, double f, int phaf, double vol);
 int dtext(SDL_Surface * scrn, int x, int y, char * text, TTF_Font * font, unsigned char r, unsigned char g, unsigned char b);
 void write_midi_time(int dt);
 
-int srate=22050;
+int srate=44100;
 int t=0;
 bool midi=false, mhead=false;
 int midchn=0;
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 	int arg;
 	int transp=0;
 	high=80;
-	int buflen=512;
+	int buflen=128;
 	for(arg=1;arg<argc;arg++)
 	{
 		if(strcmp(argv[arg], "-Ow")==0) // output WAV
