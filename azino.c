@@ -91,7 +91,7 @@ double freq[80];
 double temper[12]={1, 1.05112915, 1.125, 1.20078236, 1.25, 1.33497398, 1.40150557, 1.50097794, 1.6019688, 1.68180672, 1.77996531, 1.8765396};
 /* base phasor oscillators */
 #define N_PHASORS	12 // just the in-tune notes for now
-#define PH_ORDER	64
+#define PH_ORDER	32
 struct {
 	// z is the running e^iwt accumulator
 	float z_re[N_PHASORS];
@@ -99,9 +99,10 @@ struct {
 	// w is the step multiplier, (1+eps)e^(iwdt)
 	float w_re[N_PHASORS];
 	float w_im[N_PHASORS];
-	// a[n] is the coefficient of z^n in the current control-block's output
-	float a_re[N_PHASORS][64];
-	float a_im[N_PHASORS][64];
+	// a[0][n] is the coefficient of z^n in the current control-block's output
+	// a[1][n] is the coefficient of z^16n where that doesn't fit in a[0]
+	float a_re[N_PHASORS][2][PH_ORDER];
+	float a_im[N_PHASORS][2][PH_ORDER];
 	// are we updating a[n] this step?
 	bool calc_a;
 } phasors;
@@ -143,7 +144,7 @@ int main(int argc, char *argv[])
 	int arg;
 	int transp=0;
 	high=80;
-	int buflen=8;
+	int buflen=512;
 	for(arg=1;arg<argc;arg++)
 	{
 		if(strcmp(argv[arg], "-Ow")==0) // output WAV
@@ -1600,11 +1601,15 @@ double szn(int p, double f, int phaf, double vol)
 					unsigned int base = pitch % 12;
 					unsigned int shift = pitch / 12;
 					// For now we are oversimplified and have only real coefficients
-					if (1<<shift < PH_ORDER)
-						phasors.a_re[base][(1<<shift)-1] += slist[s].vol * vol;
+					if (1<<shift <= PH_ORDER)
+						phasors.a_re[base][0][(1<<shift)-1] += slist[s].vol * vol;
+					else if (1<<(shift-4) <= PH_ORDER)
+						phasors.a_re[base][1][(1<<(shift-4))-1] += slist[s].vol * vol;
 					int over = slist[s].stopped?3:2;
-					if (over<<shift < PH_ORDER)
-						phasors.a_re[base][(over<<shift)-1] += slist[s].vol2 * vol;
+					if (over<<shift <= PH_ORDER)
+						phasors.a_re[base][0][(over<<shift)-1] += slist[s].vol2 * vol;
+					else if (over<<(shift-4) <= PH_ORDER)
+						phasors.a_re[base][1][(over<<(shift-4))-1] += slist[s].vol2 * vol;
 					continue;
 				}
 				for(int i=1;i<3;i++)
@@ -1757,13 +1762,70 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 		}
 		// accumulate phasor polynomials
 		for(int j=0;j<N_PHASORS;j++) {
-			float re = 1, im = 0;
-			for(int k=0;k<PH_ORDER;k++) {
-				float next_re = re*phasors.z_re[j] - im*phasors.z_im[j];
-				float next_im = re*phasors.z_im[j] + im*phasors.z_re[j];
+			float re = phasors.z_re[j], im = phasors.z_im[j];
+			float sq_re, sq_im;
+			float qq_re, qq_im;
+			float re16, im16;
+			x += (re*phasors.a_re[j][0][0] - im*phasors.a_im[j][0][0])*7.5;
+			for(int k=1;k<PH_ORDER;k++) {
+				float next_re, next_im;
+				if (k>=16) {
+					// only powers of z^4 beyond this point
+					if ((k+1)&3) continue;
+					next_re = re*qq_re - im*qq_im;
+					next_im = re*qq_im + im*qq_re;
+				} else if (k>=8) {
+					// only powers of z^2 beyond this point
+					if ((k+1)&1) continue;
+					next_re = re*sq_re - im*sq_im;
+					next_im = re*sq_im + im*sq_re;
+				} else {
+					next_re = re*phasors.z_re[j] - im*phasors.z_im[j];
+					next_im = re*phasors.z_im[j] + im*phasors.z_re[j];
+				}
 				re = next_re;
 				im = next_im;
-				x += (re*phasors.a_re[j][k] - im*phasors.a_im[j][k])*7.5;
+				if (k==1) {
+					sq_re = re;
+					sq_im = im;
+				} else if (k==3) {
+					qq_re = re;
+					qq_im = im;
+				} else if (k==15) {
+					re16 = re;
+					im16 = im;
+				}
+				x += (re*phasors.a_re[j][0][k] - im*phasors.a_im[j][0][k])*7.5;
+			}
+			// a_re[j][1][0] is always zero, don't need to x+=.
+			re=re16;
+			im=im16;
+			for(int k=1;k<PH_ORDER;k++) {
+				float next_re, next_im;
+				if (k>=16) {
+					// only powers of z^64 beyond this point
+					if ((k+1)&3) continue;
+					next_re = re*qq_re - im*qq_im;
+					next_im = re*qq_im + im*qq_re;
+				} else if (k>=8) {
+					// only powers of z^32 beyond this point
+					if ((k+1)&1) continue;
+					next_re = re*sq_re - im*sq_im;
+					next_im = re*sq_im + im*sq_re;
+				} else {
+					next_re = re*re16 - im*im16;
+					next_im = re*im16 + im*re16;
+				}
+				re = next_re;
+				im = next_im;
+				if (k==1) {
+					sq_re = re;
+					sq_im = im;
+				} else if (k==3) {
+					qq_re = re;
+					qq_im = im;
+				}
+				x += (re*phasors.a_re[j][1][k] - im*phasors.a_im[j][1][k])*7.5;
 			}
 		}
 		//double v=abs(x);
