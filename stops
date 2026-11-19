@@ -7,34 +7,34 @@
 # mems: byte (8 bools), in which memories is this stop open by default?
 # trailing ":groupname" marks the end of a group
 
-64' Diapason:0.125:1:0:0:65
-32' Diapason:0.25:1:0:0:65
-16' Diapason:0.5:1:0:0:65
-10'8 Diapason:0.75:1:0:0:0
+64' Diapason:0:1:4:0:65
+32' Diapason:12:1:4:0:65
+16' Diapason:24:1:4:0:65
+10'8 Diapason:31:1:4:0:0
 8' Diapason:36:1:4:0:65
-5'4 Diapason:1.5:1:0:0:64
-4' Diapason:2:1:0:0:73
-2'8 Diapason:3:1:0:0:192
-2' Diapason:4:1:0:0:65
-1'7 Diapason:5:1:0:0:192
-1'4 Diapason:6:1:0:0:0
-1' Diapason:8:1:0:0:65
+5'4 Diapason:43:1:4:0:64
+4' Diapason:48:1:4:0:73
+2'8 Diapason:55:1:4:0:192
+2' Diapason:60:1:4:0:65
+1'7 Diapason:64:1:4:0:192
+1'4 Diapason:67:1:4:0:0
+1' Diapason:72:1:4:0:65
 
-32' Stopped Diapason:0.25:1:0:1:64
-16' Stopped Diapason:0.5:1:0:1:64
-8' Stopped Diapason:1:1:0:1:64:Principals
+32' Stopped Diapason:12:1:4:1:64
+16' Stopped Diapason:24:1:4:1:64
+8' Stopped Diapason:36:1:4:1:64:Principals
 
-32' Majorbass Flute:0.25:0.3:0:1:0
-16' Sousbasse Flute:0.5:0.2:0:0:2
+32' Majorbass Flute:12:0.3:4:1:0
+16' Sousbasse Flute:24:0.2:4:0:2
 16' Bourdon:0.5:0.4:1:1:80
 10'8 Bourdon:0.75:0.3:1:0:16
 8' Bourdon:1:0.3:1:1:80
-8' Bass Flute:1:0.2:0:0:202
-4' Chimney Flute:2:0.3:0:0:210
+8' Bass Flute:36:0.2:4:0:202
+4' Chimney Flute:48:0.3:4:0:210
 2'8 Nazard:3:0.1:1:0:64
-2' Flute:4:0.4:0:0:194
-1'4 Piccolo:6:0.2:0:0:2
-1' Octavin:8:0.3:0:0:66:Flutes
+2' Flute:60:0.4:4:0:194
+1'4 Piccolo:67:0.2:4:0:2
+1' Octavin:72:0.3:4:0:66:Flutes
 
 32' Bombarde:0.25:0.3:2:1:32
 16' Chalumeau:0.5:0.8:2:0:32
