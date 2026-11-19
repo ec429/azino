@@ -53,6 +53,8 @@ typedef struct
 	double scale; // 0 will be pure, <1 for flute, ~1 for diapason, >1 for string
 	wave form;
 	bool stopped;
+	float chr; // chiff rate
+	float chd; // chiff depth
 	unsigned char db;
 	double vol;
 	double vol2; // harmonic volume
@@ -251,67 +253,38 @@ int main(int argc, char *argv[])
 					char *pitch=strtok(NULL, ":");
 					if(pitch)
 					{
-						char *scale=strtok(NULL, ":");
-						if(scale)
-						{
-							char *wf=strtok(NULL, ":");
-							if(wf)
-							{
-								char *st=strtok(NULL, ":");
-								if(st)
-								{
-									char *mm=strtok(NULL, ":");
-									if(mm)
-									{
-										char *gn=strtok(NULL, "");
-										stop new;
-										new.name=strdup(name);
-										new.len=strndup(name, strcspn(name, " "));
-										if(strchr(name, ' ')) new.tc=strndup(strchr(name, ' ')+1, 3); else new.tc=strdup("");
-										sscanf(wf, "%d", (int *)&new.form);
-										if (new.form >= PHASOR)
-											sscanf(pitch, "%u", &new.phapi);
-										else
-											sscanf(pitch, "%lg", &new.pitch);
-										sscanf(scale, "%lg", &new.scale);
-										sscanf(st, "%d", (int *)&new.stopped);
-										sscanf(mm, "%hhu", &new.db);
-										new.vol=exp(0.1-new.pitch*0.15)*(nstops<3?(0.5-nstops*0.15):0.1);
-										switch (new.form) {
-										case OVERBLOWN:
-										case CHIMNEY:
-											new.vol*=2.0;
-											break;
-										case EXPLOG:
-											new.vol*=exp(1.1-new.pitch*0.2);
-											// fallthrough
-										default:
-											new.vol2=new.vol*new.scale;
-											new.vol/=new.scale;
-											break;
-										}
-										if(gn) new.group=strdup(gn);
-										else new.group=NULL;
-										addstop(new);
-									}
-									else
-									{
-										fprintf(stderr, "stops: bad line (no mm)\n\t%s\n", lline);
-									}
-								}
-								else
-								{
-									fprintf(stderr, "stops: bad line (no st)\n\t%s\n", lline);
-								}
-							}
+						char *rest=strtok(NULL, "");
+						// name:pitch:scale:waveform:stopped:chr:chd:mems
+						int n = 0;
+						stop new;
+						new.name=strdup(name);
+						new.len=strndup(name, strcspn(name, " "));
+						if(strchr(name, ' ')) new.tc=strndup(strchr(name, ' ')+1, 3); else new.tc=strdup("");
+						if (sscanf(rest, "%lg:%d:%d:%g:%g:%hhu%n", &new.scale, (int *)&new.form, (int *)&new.stopped, &new.chr, &new.chd, &new.db, &n) != 6) {
+							fprintf(stderr, "stops: bad line\n\t%s\n", lline);
+						} else {
+							if (new.form >= PHASOR)
+								sscanf(pitch, "%u", &new.phapi);
 							else
-							{
-								fprintf(stderr, "stops: bad line (no wf)\n\t%s\n", lline);
+								sscanf(pitch, "%lg", &new.pitch);
+							new.vol=exp(0.1-new.pitch*0.15)*(nstops<3?(0.5-nstops*0.15):0.1);
+							switch (new.form) {
+							case OVERBLOWN:
+							case CHIMNEY:
+								new.vol*=2.0;
+								break;
+							case EXPLOG:
+								new.vol*=exp(1.1-new.pitch*0.2);
+								// fallthrough
+							default:
+								new.vol2=new.vol*new.scale;
+								new.vol/=new.scale;
+								break;
 							}
-						}
-						else
-						{
-							fprintf(stderr, "stops: bad line (no scale)\n\t%s\n", lline);
+							char *gn = rest+n;
+							if (*gn == ':') new.group=strdup(gn+1);
+							else new.group=NULL;
+							addstop(new);
 						}
 					}
 					else
@@ -1610,7 +1583,7 @@ double szn(int p, double f, int phaf, double vol, unsigned int age)
 					unsigned int pitch = slist[s].phapi + phaf;
 					unsigned int base = pitch % 12;
 					unsigned int shift = pitch / 12;
-					float chiff = expf(-chage*shift*2.0), ach = 1.0 - chiff;
+					float chiff = expf(-chage*shift*slist[s].chr)*slist[s].chd, ach = 1.0 - chiff;
 					double v;
 					switch (slist[s].form) {
 					case VOX:
@@ -1637,17 +1610,18 @@ double szn(int p, double f, int phaf, double vol, unsigned int age)
 						base+=12;
 						// fallthrough
 					case PHATRI:
-						for(int j=0;;j++) {
-							int over = j*2 + 1;
-							v = ((j&1)?-1.0:1.0)/(over*over);
-							if (2*over<<shift <= PH_ORDER)
-								phasors.a_re[base][0][(2*over<<shift)-1] += slist[s].vol2 * vol * v;
-							else if ((over<<shift)/8 <= PH_ORDER)
-								phasors.a_re[base][1][((over<<shift)/8)-1] += slist[s].vol2 * vol * v;
-							if (over<<shift <= PH_ORDER)
-								phasors.a_re[base][0][(over<<shift)-1] += slist[s].vol * vol * v;
-							else if ((over<<shift)/16 <= PH_ORDER)
-								phasors.a_re[base][1][((over<<shift)/16)-1] += slist[s].vol * vol * v;
+						for(int j=1;;j++) {
+							v = (j&1)?(((j&2)?-1.0:1.0)/(j*j)):0;
+							float chiv = ((j&1)?-1.0:1.0) / (float)j * 4.0 / M_PI;
+							v = (v * ach) + (chiv * chiff);
+							if (2*j<<shift <= PH_ORDER)
+								phasors.a_re[base][0][(2*j<<shift)-1] += slist[s].vol2 * vol * v;
+							else if ((j<<shift)/8 <= PH_ORDER)
+								phasors.a_re[base][1][((j<<shift)/8)-1] += slist[s].vol2 * vol * v;
+							if (j<<shift <= PH_ORDER)
+								phasors.a_re[base][0][(j<<shift)-1] += slist[s].vol * vol * v;
+							else if ((j<<shift)/16 <= PH_ORDER)
+								phasors.a_re[base][1][((j<<shift)/16)-1] += slist[s].vol * vol * v;
 							else
 								break;
 						}

@@ -1,5 +1,5 @@
 # stops file for azino organ
-#Format: name:pitch:scale:waveform:stopped:mems
+#Format: name:pitch:scale:waveform:stopped:chr:chd:mems
 # pitch: 1 is 8' (unison)
 # (phasor forms instead use semitones above 64')
 # scale: <1 for flute, ~1 for diapason, >1 for string
@@ -8,58 +8,60 @@
 # waveform: 0=sine 1=triangle 2=explog 3=distortion
 # w/phasors: 4=sine 5=vox 6=triangle 7=voxtri 8=reed 9=over 10=chimney
 # stopped: boolean (effect is to have harmonics 1+3 instead of 1+2)
+# chr: chiff rate
+# chd: chiff depth
 # mems: byte (8 bools), in which memories is this stop open by default?
 # trailing ":groupname" marks the end of a group
 
-64' Diapason:0:1:4:0:65
-32' Diapason:12:1:4:0:65
-16' Diapason:24:1:4:0:65
-10'8 Diapason:31:1:4:0:0
-8' Diapason:36:1:4:0:65
-5'4 Quint:43:1:4:0:64
-4' Diapason:48:1:4:0:73
-2'8 Twelfth:55:1:4:0:192
-2' Doublette:60:1:4:0:65
-1'7 Tierce:64:1:4:0:192
-1'4 Nineteenth:67:1:4:0:0
-1' Diapason:72:1:4:0:65
+64' Diapason:0:1:4:0:2:1:65
+32' Diapason:12:1:4:0:2:1:65
+16' Diapason:24:1:4:0:2:1:65
+10'8 Diapason:31:1:4:0:2:1:0
+8' Diapason:36:1:4:0:2:1:65
+5'4 Quint:43:1:4:0:2:1:64
+4' Diapason:48:1:4:0:2:1:73
+2'8 Twelfth:55:1:4:0:2:1:192
+2' Doublette:60:1:4:0:2:1:65
+1'7 Tierce:64:1:4:0:2:1:192
+1'4 Nineteenth:67:1:4:0:2:1:0
+1' Diapason:72:1:4:0:2:1:65
 
-32' Stopped Diapason:12:1:4:1:64
-16' Stopped Diapason:24:1:4:1:64
-8' Stopped Diapason:36:1:4:1:64:Principals
+32' Stopped Diapason:12:1:4:1:2:1:64
+16' Stopped Diapason:24:1:4:1:2:1:64
+8' Stopped Diapason:36:1:4:1:2:1:64:Principals
 
-32' Majorbass Flute:12:0.3:4:1:0
-16' Sousbasse Flute:24:0.2:4:0:2
-16' Bourdon:24:0.4:6:1:80
-10'8 Bourdon:31:0.3:6:0:16
-8' Bourdon:36:0.3:6:1:80
-8' Bass Flute:36:0.2:4:0:202
-4' Chimney Flute:48:0.3:10:1:210
-2'8 Nazard:55:0.4:10:0:64
-2' Flute:60:0.4:4:0:194
-1'4 Larigot:67:0.2:4:0:2
-1' Octavin:72:0.3:4:0:66:Flutes
+32' Majorbass Flute:12:0.3:4:1:2.4:0.7:0
+16' Sousbasse Flute:24:0.2:4:0:2.4:0.7:2
+16' Bourdon:24:0.4:6:1:2.4:0.7:80
+10'8 Bourdon:31:0.3:6:0:2.4:0.7:16
+8' Bourdon:36:0.3:6:1:2.4:0.7:80
+8' Bass Flute:36:0.2:4:0:2.4:0.7:202
+4' Chimney Flute:48:0.3:10:1:2.4:0.7:210
+2'8 Nazard:55:0.4:10:0:2.4:0.7:64
+2' Flute:60:0.4:4:0:2.4:0.7:194
+1'4 Larigot:67:0.2:4:0:2.4:0.7:2
+1' Octavin:72:0.3:4:0:2.4:0.7:66:Flutes
 
-32' Bombarde:12:0.3:8:1:32
-16' Chalumeau:24:0.8:8:0:32
-8' Hautbois:36:0.7:8:0:32
-4' Clarino:48:2.5:8:0:32:Reeds
+32' Bombarde:12:0.3:8:1:2:1:32
+16' Chalumeau:24:0.8:8:0:2:1:32
+8' Hautbois:36:0.7:8:0:2:1:32
+4' Clarino:48:2.5:8:0:2:1:32:Reeds
 
-16' Cello:24:3:6:0:68
-8' Viola:36:4:6:0:68
-5'4 Gamba:43:6:6:0:4
-4' Violina:48:3.5:6:0:4
+16' Cello:24:3:6:0:1:0.4:68
+8' Viola:36:4:6:0:1:0.4:68
+5'4 Gamba:43:6:6:0:1:0.4:4
+4' Violina:48:3.5:6:0:1:0.4:4
 
-32' Bassi Tremolo:0.246:0.4:0:0:0
-16' Unda Maris:0.494:2:1:0:0:Strings
-8' Vox Humana:36:0.2:7:0:8
-4' Vox Celeste:48:3:5:0:8
+32' Bassi Tremolo:0.246:0.4:0:0:2:1:0
+16' Unda Maris:0.494:2:1:0:2:1:0:Strings
+8' Vox Humana:36:0.2:7:0:1:0.3:8
+4' Vox Celeste:48:3:5:0:1:0.3:8
 
-32' Choral Bass:12:0.4:7:1:0
-16' Choral Baritone:24:0.4:7:1:0
-10'8 Choral Tenor:31:0.4:7:1:0
-8' Choral Alto:36:0.4:7:1:0:Voices
+32' Choral Bass:12:0.4:7:1:0.8:0.2:0
+16' Choral Baritone:24:0.4:7:1:0.8:0.2:0
+10'8 Choral Tenor:31:0.4:7:1:0.8:0.2:0
+8' Choral Alto:36:0.4:7:1:0.8:0.2:0:Voices
 
-16' Overblown:24:0.34:9:0:0
-8' Harmonic Diapason:36:0.42:9:0:0
-4' Harmonic Flute:48:0.22:9:0:0:Overblown
+16' Overblown:24:0.34:9:0:2.4:0.7:0
+8' Harmonic Diapason:36:0.42:9:0:2.4:0.7:0
+4' Harmonic Flute:48:0.22:9:0:2.4:0.7:0:Overblown
