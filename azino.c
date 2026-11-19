@@ -1583,7 +1583,7 @@ double szn(int p, double f, int phaf, double vol, unsigned int age)
 					unsigned int pitch = slist[s].phapi + phaf;
 					unsigned int base = pitch % 12;
 					unsigned int shift = pitch / 12;
-					float chiff = expf(-chage*shift*slist[s].chr)*slist[s].chd, ach = 1.0 - chiff;
+					float chiff = expf(-chage*(0.5f + (float)pitch/15.0f)*slist[s].chr)*slist[s].chd, ach = 1.0f - chiff;
 					double v;
 					switch (slist[s].form) {
 					case VOX:
@@ -1764,7 +1764,7 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 	fe = fp;
 	for(i=0;i<len;i+=2)
 	{
-		phasors.calc_a = !(t&15);
+		phasors.calc_a = !(t&63);
 		if (phasors.calc_a) {
 			memset(phasors.a_re, 0, sizeof(phasors.a_re));
 			memset(phasors.a_im, 0, sizeof(phasors.a_im));
