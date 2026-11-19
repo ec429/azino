@@ -1607,8 +1607,11 @@ double szn(int p, double f, int phaf, double vol)
 		{
 			if(stopset[s])
 			{
-				if (!s_Ch && phaf>=0 && slist[s].form>=PHASOR) {
+				if (!s_Ch && slist[s].form>=PHASOR) {
 					if(!phasors.calc_a)
+						continue;
+					// Can't have 64' pedal F
+					if ((int)slist[s].phapi + phaf < 0)
 						continue;
 					unsigned int pitch = slist[s].phapi + phaf;
 					unsigned int base = pitch % 12;
@@ -1694,12 +1697,13 @@ double szn(int p, double f, int phaf, double vol)
 				}
 				for(int i=1;i<3;i++)
 				{
-					double ph=fmod(p*f*(slist[s].stopped?(i<<1)-1:i)*slist[s].pitch, M_PI*2);
+					double pitch=(slist[s].form>=PHASOR)?pow(2, slist[s].pitch/12.0):slist[s].pitch;
+					double ph=fmod(p*f*(slist[s].stopped?(i<<1)-1:i)*pitch, M_PI*2);
 					double v=0;
 					switch(slist[s].form)
 					{
 						case SINE:
-						case PHASOR: /* For bottom F, fall back to inefficient sine for now */
+						case PHASOR:
 						case VOX:
 							v=s_Ch?(ph>M_PI?1:0):sin(ph);
 						break;
