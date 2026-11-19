@@ -1610,20 +1610,25 @@ double szn(int p, double f, int phaf, double vol, unsigned int age)
 						base+=12;
 						// fallthrough
 					case PHATRI:
-						for(int j=1;;j++) {
+						for(int j=1;j<9;j++) {
 							v = (j&1)?(((j&2)?-1.0:1.0)/(j*j)):0;
 							float chiv = ((j&1)?-1.0:1.0) / (float)j * 4.0 / M_PI;
-							v = (v * ach) + (chiv * chiff);
-							if (2*j<<shift <= PH_ORDER)
-								phasors.a_re[base][0][(2*j<<shift)-1] += slist[s].vol2 * vol * v;
-							else if ((j<<shift)/8 <= PH_ORDER)
+							if (2*j<<shift <= PH_ORDER) {
+								phasors.a_re[base][0][(2*j<<shift)-1] += slist[s].vol2 * vol * v * ach;
+								phasors.a_im[base][0][(2*j<<shift)-1] += slist[s].vol2 * vol * chiv * chiff;
+							} else if ((j<<shift)/8 <= PH_ORDER) {
 								phasors.a_re[base][1][((j<<shift)/8)-1] += slist[s].vol2 * vol * v;
-							if (j<<shift <= PH_ORDER)
-								phasors.a_re[base][0][(j<<shift)-1] += slist[s].vol * vol * v;
-							else if ((j<<shift)/16 <= PH_ORDER)
-								phasors.a_re[base][1][((j<<shift)/16)-1] += slist[s].vol * vol * v;
-							else
+								phasors.a_im[base][1][((j<<shift)/8)-1] += slist[s].vol2 * vol * chiv * chiff;
+							}
+							if (j<<shift <= PH_ORDER) {
+								phasors.a_re[base][0][(j<<shift)-1] += slist[s].vol * vol * v * ach;
+								phasors.a_im[base][0][(j<<shift)-1] += slist[s].vol * vol * chiv * chiff;
+							} else if ((j<<shift)/16 <= PH_ORDER) {
+								phasors.a_re[base][1][((j<<shift)/16)-1] += slist[s].vol * vol * v * ach;
+								phasors.a_im[base][1][((j<<shift)/16)-1] += slist[s].vol * vol * chiv * chiff;
+							} else {
 								break;
+							}
 						}
 						break;
 					case PHAREED:
@@ -1796,35 +1801,33 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 		else
 			shakeval=0;
 		double x=0;
-		if (phasors.calc_a) {
-			// code for bottom F
-			unsigned int age = t - fl;
-			fv = flv * exp(-(float)age/sus);
-			age = t - fs;
-			if (fe) {
+		// code for bottom F
+		unsigned int age = t - fl;
+		fv = flv * exp(-(float)age/sus);
+		age = t - fs;
+		if (fe) {
+			if (s_Or)
+				fv = 0;
+			fv += 1.0f - expf(-(float)age/hit);
+		}
+		if(fv>1e-4)
+			x+=szn(t, ff, -2, fv, age)*7.5;
+		for(int j=0;j<high;j++)
+		{
+			int pit = (j/20)*12+(j%20);
+			unsigned int age = t - lift[j];
+			vol[j] = liftvol[j] * exp(-(float)age/sus);
+			age = t - strike[j];
+			if (seen[j]) {
 				if (s_Or)
-					fv = 0;
-				fv += 1.0f - expf(-(float)age/hit);
+					vol[j] = 0;
+				vol[j] += 1.0f - expf(-(float)age/hit);
 			}
-			if(fv>1e-4)
-				x+=szn(t, ff, -2, fv, age)*7.5;
-			for(int j=0;j<high;j++)
+			if(vol[j]>1e-4)
 			{
-				int pit = (j/20)*12+(j%20);
-				unsigned int age = t - lift[j];
-				vol[j] = liftvol[j] * exp(-(float)age/sus);
-				age = t - strike[j];
-				if (seen[j]) {
-					if (s_Or)
-						vol[j] = 0;
-					vol[j] += 1.0f - expf(-(float)age/hit);
-				}
-				if(vol[j]>1e-4)
-				{
-					x+=szn(t, freq[j], pit, vol[j], age)*7.5;
-					if(extra[j])
-						x+=szn(t, freq[j]*(s_5h?1.5:2.0), pit + (s_5h?7:12), vol[j], age)*7.5;
-				}
+				x+=szn(t, freq[j], pit, vol[j], age)*7.5;
+				if(extra[j])
+					x+=szn(t, freq[j]*(s_5h?1.5:2.0), pit + (s_5h?7:12), vol[j], age)*7.5;
 			}
 		}
 		// accumulate phasor polynomials
