@@ -1583,7 +1583,8 @@ double szn(int p, double f, int phaf, double vol, unsigned int age)
 					unsigned int pitch = slist[s].phapi + phaf;
 					unsigned int base = pitch % 12;
 					unsigned int shift = pitch / 12;
-					float chiff = expf(-chage*(0.5f + (float)pitch/15.0f)*slist[s].chr)*slist[s].chd, ach = 1.0f - chiff;
+					float chx = chage*(0.5f + (float)pitch/15.0f)*slist[s].chr;
+					float chiff = chx * expf(-chx)*slist[s].chd, ach = 1.0f - chiff;
 					double v;
 					switch (slist[s].form) {
 					case VOX:
