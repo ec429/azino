@@ -67,7 +67,7 @@ int line(SDL_Surface *surf, int x0, int y0, int x1, int y1, unsigned char r, uns
 void mixaudio(void *unused, Uint8 *stream, int len);
 void freqcalc(int transp);
 void addstop(stop new);
-double szn(int p, double f, int phaf, double vol);
+double szn(int p, double f, int phaf, double vol, unsigned int age);
 int dtext(SDL_Surface * scrn, int x, int y, char * text, TTF_Font * font, unsigned char r, unsigned char g, unsigned char b);
 void write_midi_time(int dt);
 
@@ -1591,10 +1591,11 @@ int line(SDL_Surface *surf, int x0, int y0, int x1, int y1, unsigned char r, uns
 	return(0);
 }
 
-double szn(int p, double f, int phaf, double vol)
+double szn(int p, double f, int phaf, double vol, unsigned int age)
 {
 	if(organ)
 	{
+		float chage=(float)age/(float)srate;
 		double r=0;
 		for(int s=0;s<nstops;s++)
 		{
@@ -1609,6 +1610,7 @@ double szn(int p, double f, int phaf, double vol)
 					unsigned int pitch = slist[s].phapi + phaf;
 					unsigned int base = pitch % 12;
 					unsigned int shift = pitch / 12;
+					float chiff = expf(-chage*shift*2.0), ach = 1.0 - chiff;
 					double v;
 					switch (slist[s].form) {
 					case VOX:
@@ -1616,17 +1618,19 @@ double szn(int p, double f, int phaf, double vol)
 						base+=12;
 						// fallthrough
 					case PHASOR:
-					diap:
+					diap:;
 						// For now we are oversimplified and have only real coefficients
+						float first = slist[s].vol * ach;
 						if (1<<shift <= PH_ORDER)
-							phasors.a_re[base][0][(1<<shift)-1] += slist[s].vol * vol;
+							phasors.a_re[base][0][(1<<shift)-1] += first * vol;
 						else if (1<<(shift-4) <= PH_ORDER)
-							phasors.a_re[base][1][(1<<(shift-4))-1] += slist[s].vol * vol;
+							phasors.a_re[base][1][(1<<(shift-4))-1] += first * vol;
 						int over = slist[s].stopped?3:2;
+						float second = slist[s].vol2 + slist[s].vol * chiff;
 						if (over<<shift <= PH_ORDER)
-							phasors.a_re[base][0][(over<<shift)-1] += slist[s].vol2 * vol;
+							phasors.a_re[base][0][(over<<shift)-1] += second * vol;
 						else if (over<<(shift-4) <= PH_ORDER)
-							phasors.a_re[base][1][(over<<(shift-4))-1] += slist[s].vol2 * vol;
+							phasors.a_re[base][1][(over<<(shift-4))-1] += second * vol;
 						break;
 					case VOXTRI:
 						// use the detuned ranks
@@ -1822,30 +1826,30 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 			// code for bottom F
 			unsigned int age = t - fl;
 			fv = flv * exp(-(float)age/sus);
+			age = t - fs;
 			if (fe) {
-				unsigned int age = t - fs;
 				if (s_Or)
 					fv = 0;
 				fv += 1.0f - expf(-(float)age/hit);
 			}
 			if(fv>1e-4)
-				x+=szn(t, ff, -2, fv)*7.5;
+				x+=szn(t, ff, -2, fv, age)*7.5;
 			for(int j=0;j<high;j++)
 			{
 				int pit = (j/20)*12+(j%20);
 				unsigned int age = t - lift[j];
 				vol[j] = liftvol[j] * exp(-(float)age/sus);
+				age = t - strike[j];
 				if (seen[j]) {
-					unsigned int age = t - strike[j];
 					if (s_Or)
 						vol[j] = 0;
 					vol[j] += 1.0f - expf(-(float)age/hit);
 				}
 				if(vol[j]>1e-4)
 				{
-					x+=szn(t, freq[j], pit, vol[j])*7.5;
+					x+=szn(t, freq[j], pit, vol[j], age)*7.5;
 					if(extra[j])
-						x+=szn(t, freq[j]*(s_5h?1.5:2.0), pit + (s_5h?7:12), vol[j])*7.5;
+						x+=szn(t, freq[j]*(s_5h?1.5:2.0), pit + (s_5h?7:12), vol[j], age)*7.5;
 				}
 			}
 		}
