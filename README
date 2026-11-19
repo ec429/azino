@@ -67,7 +67,7 @@ RShft E G C  E♭G C  E♭G C
 
 Appendix C: Default Presets & Registration Suggestions
 ------------------------------------------------------
-The Azino has eight default presets for its stops, which illustrate its range of pipes.  These presets can also be changed during a performance (though the changes will be forgotten when the program is exit).  Note that using more pipes requires more CPU power; in effect the number of pipes multiplies the number of notes being played.  Opening too many stops may therefore result in the audio skipping.
+The Azino has eight default presets for its stops, which illustrate its range of pipes.  These presets can also be changed during a performance (though the changes will be forgotten when the program is exit).
 
 Preset 1: Diapasons.  These are the 'principal pipes', with the most characteristic pipe organ sound.  This preset uses only pipes in octaves (from 64' to 1').
 Preset 2: Flutes.  On a real organ these pipes are much wider, which contributes to the fuller sound with less harmonics.  The lowest flute pipe is the 32' Majorbass.
