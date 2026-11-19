@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
 	int arg;
 	int transp=0;
 	high=80;
-	int buflen=128;
+	int buflen=256;
 	for(arg=1;arg<argc;arg++)
 	{
 		if(strcmp(argv[arg], "-Ow")==0) // output WAV
