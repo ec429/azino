@@ -1339,7 +1339,7 @@ int main(int argc, char *argv[])
 									fr=true;
 									int a=2,b=5;
 									int mode=fm%3;
-									bool mswap=omode[n]>2;
+									bool mswap=fm>2;
 									if(((mode==1)&&!mswap)||((mode==2)&&mswap))
 										a--;
 									released[a]=released[b]=true;
