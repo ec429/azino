@@ -47,6 +47,7 @@ typedef enum
 	VOX,	// PHASOR sharpened by 1.2%
 	PHATRI,	// TRIANGLE implemented with phasors
 	VOXTRI,	// PHATRI sharpened by 1.2%
+	PHAREED,// even-harmonics
 }
 wave;
 
@@ -1640,6 +1641,22 @@ double szn(int p, double f, int phaf, double vol)
 								break;
 						}
 						break;
+					case PHAREED:
+						for(int j=0;;j++) {
+							int over = j?j*2:1;
+							double v = 1.0/((j+1)*(j+1));
+							if (2*over<<shift <= PH_ORDER)
+								phasors.a_re[base][0][(2*over<<shift)-1] += slist[s].vol2 * vol * v;
+							else if ((over<<shift)/8 <= PH_ORDER)
+								phasors.a_re[base][1][((over<<shift)/8)-1] += slist[s].vol2 * vol * v;
+							if (over<<shift <= PH_ORDER)
+								phasors.a_re[base][0][(over<<shift)-1] += slist[s].vol * vol * v;
+							else if ((over<<shift)/16 <= PH_ORDER)
+								phasors.a_re[base][1][((over<<shift)/16)-1] += slist[s].vol * vol * v;
+							else
+								break;
+						}
+						break;
 					default:
 						fprintf(stderr, "Bad slist[%d].form %d\n", s, slist[s].form);
 						return 0.0;
@@ -1672,6 +1689,7 @@ double szn(int p, double f, int phaf, double vol)
 							}
 						break;
 						case EXPLOG:
+						case PHAREED:
 							if(s_Ch)
 							{
 								ph=fmod(p*f*(slist[s].stopped?(i<<1)-1:i)*slist[s].pitch, M_PI*512);
