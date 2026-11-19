@@ -43,7 +43,10 @@ typedef enum
 	TRIANGLE,
 	EXPLOG,
 	DIST,
-	PHASOR
+	PHASOR,
+	VOX,	// PHASOR sharpened by 1.2%
+	PHATRI,	// TRIANGLE implemented with phasors
+	VOXTRI,	// PHATRI sharpened by 1.2%
 }
 wave;
 
@@ -53,7 +56,7 @@ typedef struct
 	char *len;
 	char *tc;
 	double pitch; // 1 for unison (8')
-	unsigned int phapi; // pitch in semitones from 1 (for PHASOR)
+	unsigned int phapi; // pitch in semitones from 1 (for PHASOR forms)
 	double scale; // 0 will be pure, <1 for flute, ~1 for diapason, >1 for string
 	wave form;
 	bool stopped;
@@ -90,7 +93,7 @@ double vol[80];
 double freq[80];
 double temper[12]={1, 1.05112915, 1.125, 1.20078236, 1.25, 1.33497398, 1.40150557, 1.50097794, 1.6019688, 1.68180672, 1.77996531, 1.8765396};
 /* base phasor oscillators */
-#define N_PHASORS	12 // just the in-tune notes for now
+#define N_PHASORS	24
 #define PH_ORDER	32
 struct {
 	// z is the running e^iwt accumulator
@@ -270,7 +273,7 @@ int main(int argc, char *argv[])
 										new.len=strndup(name, strcspn(name, " "));
 										if(strchr(name, ' ')) new.tc=strndup(strchr(name, ' ')+1, 3); else new.tc=strdup("");
 										sscanf(wf, "%d", (int *)&new.form);
-										if (new.form == PHASOR)
+										if (new.form >= PHASOR)
 											sscanf(pitch, "%u", &new.phapi);
 										else
 											sscanf(pitch, "%lg", &new.pitch);
@@ -1594,22 +1597,53 @@ double szn(int p, double f, int phaf, double vol)
 		{
 			if(stopset[s])
 			{
-				if (!s_Ch && phaf>=0 && slist[s].form==PHASOR) {
+				if (!s_Ch && phaf>=0 && slist[s].form>=PHASOR) {
 					if(!phasors.calc_a)
 						continue;
 					unsigned int pitch = slist[s].phapi + phaf;
 					unsigned int base = pitch % 12;
 					unsigned int shift = pitch / 12;
-					// For now we are oversimplified and have only real coefficients
-					if (1<<shift <= PH_ORDER)
-						phasors.a_re[base][0][(1<<shift)-1] += slist[s].vol * vol;
-					else if (1<<(shift-4) <= PH_ORDER)
-						phasors.a_re[base][1][(1<<(shift-4))-1] += slist[s].vol * vol;
-					int over = slist[s].stopped?3:2;
-					if (over<<shift <= PH_ORDER)
-						phasors.a_re[base][0][(over<<shift)-1] += slist[s].vol2 * vol;
-					else if (over<<(shift-4) <= PH_ORDER)
-						phasors.a_re[base][1][(over<<(shift-4))-1] += slist[s].vol2 * vol;
+					switch (slist[s].form) {
+					case VOX:
+						// use the detuned ranks
+						base+=12;
+						// fallthrough
+					case PHASOR:
+						// For now we are oversimplified and have only real coefficients
+						if (1<<shift <= PH_ORDER)
+							phasors.a_re[base][0][(1<<shift)-1] += slist[s].vol * vol;
+						else if (1<<(shift-4) <= PH_ORDER)
+							phasors.a_re[base][1][(1<<(shift-4))-1] += slist[s].vol * vol;
+						int over = slist[s].stopped?3:2;
+						if (over<<shift <= PH_ORDER)
+							phasors.a_re[base][0][(over<<shift)-1] += slist[s].vol2 * vol;
+						else if (over<<(shift-4) <= PH_ORDER)
+							phasors.a_re[base][1][(over<<(shift-4))-1] += slist[s].vol2 * vol;
+						break;
+					case VOXTRI:
+						// use the detuned ranks
+						base+=12;
+						// fallthrough
+					case PHATRI:
+						for(int j=0;;j++) {
+							int over = j*2 + 1;
+							double v = ((j&1)?-1.0:1.0)/(over*over);
+							if (2*over<<shift <= PH_ORDER)
+								phasors.a_re[base][0][(2*over<<shift)-1] += slist[s].vol2 * vol * v;
+							else if ((over<<shift)/8 <= PH_ORDER)
+								phasors.a_re[base][1][((over<<shift)/8)-1] += slist[s].vol2 * vol * v;
+							if (over<<shift <= PH_ORDER)
+								phasors.a_re[base][0][(over<<shift)-1] += slist[s].vol * vol * v;
+							else if ((over<<shift)/16 <= PH_ORDER)
+								phasors.a_re[base][1][((over<<shift)/16)-1] += slist[s].vol * vol * v;
+							else
+								break;
+						}
+						break;
+					default:
+						fprintf(stderr, "Bad slist[%d].form %d\n", s, slist[s].form);
+						return 0.0;
+					}
 					continue;
 				}
 				for(int i=1;i<3;i++)
@@ -1620,9 +1654,12 @@ double szn(int p, double f, int phaf, double vol)
 					{
 						case SINE:
 						case PHASOR: /* For bottom F, fall back to inefficient sine for now */
+						case VOX:
 							v=s_Ch?(ph>M_PI?1:0):sin(ph);
 						break;
 						case TRIANGLE:
+						case PHATRI:
+						case VOXTRI:
 							if(s_Ch)
 							{
 								int part=ph*16/M_PI;
@@ -1898,8 +1935,9 @@ void freqcalc(int transp)
 	for(int j=0;j<N_PHASORS;j++) {
 		// Slightly longer than 1 so that it stays on the clip and we don't have to normalise
 		// Float ulp at 1 is about 1.19e-7
-		phasors.w_re[j] = cos(freq[j] / 8) * (1 + 2e-7);
-		phasors.w_im[j] = sin(freq[j] / 8) * (1 + 2e-7);
+		double detune = j < 12 ? 1 : 1.012;
+		phasors.w_re[j] = cos(freq[j % 12] * detune / 8) * (1 + 2e-7);
+		phasors.w_im[j] = sin(freq[j % 12] * detune / 8) * (1 + 2e-7);
 	}
 }
 

@@ -1,8 +1,10 @@
 # stops file for azino organ
 #Format: name:pitch:scale:waveform:stopped:mems
 # pitch: 1 is 8' (unison)
+# (phasor forms instead use semitones above 64')
 # scale: <1 for flute, ~1 for diapason, >1 for string
 # waveform: 0=sine 1=triangle 2=explog 3=distortion
+# w/phasors: 4=sine 5=vox 6=triangle 7=voxtri
 # stopped: boolean (effect is to have harmonics 1+3 instead of 1+2)
 # mems: byte (8 bools), in which memories is this stop open by default?
 # trailing ":groupname" marks the end of a group
@@ -26,12 +28,12 @@
 
 32' Majorbass Flute:12:0.3:4:1:0
 16' Sousbasse Flute:24:0.2:4:0:2
-16' Bourdon:0.5:0.4:1:1:80
-10'8 Bourdon:0.75:0.3:1:0:16
-8' Bourdon:1:0.3:1:1:80
+16' Bourdon:24:0.4:6:1:80
+10'8 Bourdon:31:0.3:6:0:16
+8' Bourdon:36:0.3:6:1:80
 8' Bass Flute:36:0.2:4:0:202
 4' Chimney Flute:48:0.3:4:0:210
-2'8 Nazard:3:0.1:1:0:64
+2'8 Nazard:55:0.1:6:0:64
 2' Flute:60:0.4:4:0:194
 1'4 Piccolo:67:0.2:4:0:2
 1' Octavin:72:0.3:4:0:66:Flutes
@@ -41,20 +43,20 @@
 8' Hautbois:1:0.7:2:0:32
 4' Clarino:2:2.5:2:0:32:Reeds
 
-16' Cello:0.5:3:1:0:68
-8' Viola:1:4:1:0:68
-5'4 Gamba:1.5:6:1:0:4
-4' Violina:2:3.5:1:0:4
+16' Cello:24:3:6:0:68
+8' Viola:36:4:6:0:68
+5'4 Gamba:43:6:6:0:4
+4' Violina:48:3.5:6:0:4
 
 32' Bassi Tremolo:0.246:0.4:0:0:0
 16' Unda Maris:0.494:2:1:0:0:Strings
-8' Vox Humana:1.012:0.2:1:0:8
-4' Vox Celeste:2.02:3:0:0:8
+8' Vox Humana:36:0.2:7:0:8
+4' Vox Celeste:48:3:5:0:8
 
-32' Choral Bass:0.2503:0.4:1:1:0
-16' Choral Baritone:0.5006:0.4:1:1:0
-10'8 Choral Tenor:0.7509:0.4:1:1:0
-8' Choral Alto:1.012:0.4:1:1:0:Voices
+32' Choral Bass:12:0.4:7:1:0
+16' Choral Baritone:24:0.4:7:1:0
+10'8 Choral Tenor:31:0.4:7:1:0
+8' Choral Alto:36:0.4:7:1:0:Voices
 
 16' Overblown:0.5:3:3:0:0
 8' Distortion:1:2.5:3:0:0
