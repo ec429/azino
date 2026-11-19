@@ -1768,8 +1768,6 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 	if(s_Ge)
 		hit*=5;
 	float sus = s_Ns ? 1 : (s_Su ? 0.35 : 0.1) * srate;
-	memset(phasors.a_re, 0, sizeof(phasors.a_re));
-	memset(phasors.a_im, 0, sizeof(phasors.a_im));
 	for(int j=0;j<high;j++) {
 		if (pressed[j] && !seen[j]) {
 			strike[j] = t;
@@ -1788,7 +1786,11 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 	fe = fp;
 	for(i=0;i<len;i+=2)
 	{
-		phasors.calc_a = !i;
+		phasors.calc_a = !(t&15);
+		if (phasors.calc_a) {
+			memset(phasors.a_re, 0, sizeof(phasors.a_re));
+			memset(phasors.a_im, 0, sizeof(phasors.a_im));
+		}
 		t=(t+1);
 		/* Spin the fundamental oscillators */
 		for(int j=0;j<N_PHASORS;j++) {
