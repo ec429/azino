@@ -1673,6 +1673,12 @@ double szn(int p, double f, int phaf, double vol, unsigned int age)
 							v = 1.0/(j*j*j);
 							if (!(j&1))
 								v*=slist[s].scale;
+							if (j==5) // chimneys boost the 5th harmonic
+								v*=1.6;
+							float chiv = (j&1)?2.0 / (float)(j*j):0;
+							if (j==7)
+								chiv*=3.6;
+							v = ach * v + chiff * chiv;
 							if (j<<shift <= PH_ORDER)
 								phasors.a_re[base][0][(j<<shift)-1] += slist[s].vol * vol * v;
 							else if ((j<<shift)/16 <= PH_ORDER)
@@ -1840,12 +1846,12 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 			x += (re*phasors.a_re[j][0][0] - im*phasors.a_im[j][0][0])*7.5;
 			for(int k=1;k<PH_ORDER;k++) {
 				float next_re, next_im;
-				if (k>=16) {
+				if (k>=32) {
 					// only powers of z^4 beyond this point
 					if ((k+1)&3) continue;
 					next_re = re*qq_re - im*qq_im;
 					next_im = re*qq_im + im*qq_re;
-				} else if (k>=8) {
+				} else if (k>=16) {
 					// only powers of z^2 beyond this point
 					if ((k+1)&1) continue;
 					next_re = re*sq_re - im*sq_im;
@@ -1873,12 +1879,12 @@ void mixaudio(__attribute__((unused)) void *unused, Uint8 *stream, int len)
 			im=im16;
 			for(int k=1;k<PH_ORDER;k++) {
 				float next_re, next_im;
-				if (k>=16) {
+				if (k>=32) {
 					// only powers of z^64 beyond this point
 					if ((k+1)&3) continue;
 					next_re = re*qq_re - im*qq_im;
 					next_im = re*qq_im + im*qq_re;
-				} else if (k>=8) {
+				} else if (k>=16) {
 					// only powers of z^32 beyond this point
 					if ((k+1)&1) continue;
 					next_re = re*sq_re - im*sq_im;
